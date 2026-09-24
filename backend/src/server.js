@@ -4,6 +4,6 @@ import { env } from './config/env.js';
 
 const server = http.createServer(createApp());
 
-server.listen(env.port, () => {
-  console.log(`API listening on port ${env.port}`);
+server.listen(env.port, env.host, () => {
+  console.log(`API listening on http://${env.host}:${env.port}`);
 });
