@@ -1,18 +1,14 @@
 import http from 'node:http';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
 
-const port = Number(process.env.PORT || 3000);
+const server = http.createServer(createApp({
+  productController: { list: async (_request, response) => {
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ data: [] }));
+  } },
+}));
 
-const server = http.createServer((request, response) => {
-  if (request.url === '/health' && request.method === 'GET') {
-    response.writeHead(200, { 'Content-Type': 'application/json' });
-    response.end(JSON.stringify({ status: 'ok' }));
-    return;
-  }
-
-  response.writeHead(404, { 'Content-Type': 'application/json' });
-  response.end(JSON.stringify({ message: 'Route not found' }));
-});
-
-server.listen(port, () => {
-  console.log(`API listening on port ${port}`);
+server.listen(env.port, () => {
+  console.log(`API listening on port ${env.port}`);
 });
