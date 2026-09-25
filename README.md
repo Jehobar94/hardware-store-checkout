@@ -27,12 +27,12 @@ cd frontend && npm test && npm run test:coverage
 cd backend && npm test && npm run test:coverage
 ```
 
-Estado actual de cobertura:
+Estado actual de cobertura verificado:
 
-- Frontend: aproximadamente 94% de líneas en la lógica de validación de tarjetas.
-- Backend: aproximadamente 80.5% de líneas, 70% de ramas y 87.18% de funciones, con 17 pruebas pasando.
+- Frontend: 3 pruebas pasando y 94.44% de líneas en la lógica de validación de tarjetas.
+- Backend: 28 pruebas pasando, 84.81% de líneas, 76.82% de ramas y 86.96% de funciones.
 
-La cobertura se ejecuta sobre el código fuente del backend con la cobertura nativa de Node y supera el objetivo de 80% de líneas solicitado por el reto.
+La cobertura se ejecuta sobre el código fuente del backend con la cobertura nativa de Node y supera el objetivo de más de 80% de líneas solicitado por el reto.
 
 ## Supabase
 

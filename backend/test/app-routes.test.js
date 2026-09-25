@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../src/app.js';
 
 function responseDouble() {
-  return { statusCode: null, body: '', writeHead(statusCode) { this.statusCode = statusCode; }, end(body = '') { this.body = body; } };
+  return { statusCode: null, body: '', headers: {}, setHeader(name, value) { this.headers[name] = value; }, writeHead(statusCode) { this.statusCode = statusCode; }, end(body = '') { this.body = body; } };
 }
 
 function requestBody(body) {
@@ -54,4 +54,36 @@ test('expone órdenes, sincronización y webhook con el servicio inyectado', asy
   const webhookResponse = responseDouble();
   await app({ method: 'POST', url: '/api/webhooks/wompi', ...requestBody({ event: 'transaction.updated' }) }, webhookResponse);
   assert.equal(webhookResponse.statusCode, 200);
+});
+
+test('expone opciones, pagos legacy, aceptación y sincronización de pago', async () => {
+  const paymentService = {
+    createPayment: async (input) => ({ received: input.ok }),
+    getAcceptanceData: async () => ({ acceptance: 'ok' }),
+    syncPayment: async (id) => ({ transactionId: id, status: 'pending' }),
+  };
+  const app = createApp({ paymentService });
+  const optionsResponse = responseDouble();
+  await app({ method: 'OPTIONS', url: '/api/orders' }, optionsResponse);
+  assert.equal(optionsResponse.statusCode, 204);
+  assert.equal(optionsResponse.headers['Access-Control-Allow-Methods'], 'GET,POST,OPTIONS');
+
+  const paymentResponse = responseDouble();
+  await app({ method: 'POST', url: '/api/payments', ...requestBody({ ok: true }) }, paymentResponse);
+  assert.deepEqual(JSON.parse(paymentResponse.body), { received: true });
+
+  const acceptanceResponse = responseDouble();
+  await app({ method: 'GET', url: '/api/payments/acceptance' }, acceptanceResponse);
+  assert.deepEqual(JSON.parse(acceptanceResponse.body), { data: { acceptance: 'ok' } });
+
+  const syncResponse = responseDouble();
+  await app({ method: 'GET', url: '/api/payments/payment-1' }, syncResponse);
+  assert.deepEqual(JSON.parse(syncResponse.body), { transactionId: 'payment-1', status: 'pending' });
+});
+
+test('valida el payload cifrado antes de tokenizar', async () => {
+  const response = responseDouble();
+  await createApp()({ method: 'POST', url: '/api/payments/tokenize', ...requestBody({}) }, response);
+  assert.equal(response.statusCode, 400);
+  assert.equal(JSON.parse(response.body).message, 'Encrypted card payload is required');
 });
