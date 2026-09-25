@@ -36,8 +36,6 @@ function getProductGallery(product) {
 function getDisplayProduct(product) {
   const isChairPromo = product.slug === 'gaming-chair-px1' || product.id === 'gaming-chair-px1';
   if (!isChairPromo) return product;
-  // Products coming from the API already contain the sale price. Only apply
-  // the local preview discount when the API has not supplied one yet.
   if (product.originalPriceInCents && product.priceInCents < product.originalPriceInCents) return product;
   return { ...product, priceInCents: Math.round(product.priceInCents / 2), originalPriceInCents: product.priceInCents };
 }
