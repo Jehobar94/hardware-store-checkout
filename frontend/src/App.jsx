@@ -68,7 +68,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="site-header"><a className="brand" href="/">northstar<span>store</span></a><div className="header-actions"><button className="language-button" type="button" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>{text.language}</button><button className="cart-button" type="button" aria-label={text.cart}>{text.cart} <span>0</span></button></div></header>
+      <header className="site-header"><a className="brand" href="/">Wompi<span> Store</span></a><div className="header-actions"><button className="language-button" type="button" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>{text.language}</button><button className="cart-button" type="button" aria-label={text.cart}>{text.cart} <span>0</span></button></div></header>
       <main>
         <section className="hero"><p className="eyebrow">{text.eyebrow}</p><h1>{text.title}</h1><p className="hero__copy">{text.intro}</p></section>
         <section className="catalog" aria-labelledby="catalog-title"><div className="section-heading"><h2 id="catalog-title">{text.collection}</h2>{status === 'demo' && <span className="status-note">{text.localPreview}</span>}</div>{status === 'loading' && <p className="empty-state">{text.loading}</p>}{products.length > 0 && <div className="product-grid">{products.map((product) => <ProductCard key={product.id} product={product} text={text} language={language} />)}</div>}</section>
