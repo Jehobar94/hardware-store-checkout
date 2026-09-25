@@ -1,4 +1,4 @@
--- Pedido único para compras con varios productos.
+-- Pedidos, productos asociados y actualización de inventario.
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references public.customers(id),
