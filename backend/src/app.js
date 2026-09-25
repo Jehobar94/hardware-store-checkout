@@ -9,14 +9,35 @@ import { PaymentService } from './modules/payments/payment-service.js';
 import { readJson } from './shared/request-body.js';
 
 export function createApp({ productController = buildProductController(), paymentService = null } = {}) {
+  const requestCounts = new Map();
+  const rateLimit = (request, response) => {
+    const now = Date.now();
+    const key = `${request.socket?.remoteAddress || 'unknown'}:${request.url.split('?')[0]}`;
+    const current = requestCounts.get(key);
+    if (!current || now - current.startedAt >= 60_000) {
+      requestCounts.set(key, { startedAt: now, count: 1 });
+      return true;
+    }
+    current.count += 1;
+    if (current.count > 30) {
+      sendJson(response, 429, { message: 'Too many requests' });
+      return false;
+    }
+    return true;
+  };
   const getPaymentService = () => paymentService || buildPaymentService();
   return async function app(request, response) {
-    const allowedOrigin = process.env.FRONTEND_ORIGIN || '*';
+    const allowedOrigin = process.env.FRONTEND_ORIGIN || 'http://127.0.0.1:5173';
     if (typeof response.setHeader === 'function') {
       response.setHeader('Access-Control-Allow-Origin', allowedOrigin);
       response.setHeader('Vary', 'Origin');
       response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      response.setHeader('X-Content-Type-Options', 'nosniff');
+      response.setHeader('X-Frame-Options', 'DENY');
+      response.setHeader('Referrer-Policy', 'no-referrer');
+      response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+      response.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; form-action 'none'");
     }
     if (request.method === 'OPTIONS') {
       response.writeHead(204);
@@ -24,6 +45,7 @@ export function createApp({ productController = buildProductController(), paymen
       return;
     }
     try {
+      if (!rateLimit(request, response)) return;
       if (request.method === 'GET' && request.url === '/health') {
         sendJson(response, 200, { status: 'ok' });
         return;

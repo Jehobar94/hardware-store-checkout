@@ -75,7 +75,7 @@ on conflict (slug) do update set
   updated_at = now();
 
 create or replace function public.decrement_order_stock(p_order_id uuid)
-returns void language plpgsql security definer as $$
+returns void language plpgsql security definer set search_path = public as $$
 declare item record;
 begin
   for item in select product_id, quantity from public.order_items where order_id = p_order_id loop
@@ -85,3 +85,5 @@ begin
   end loop;
 end;
 $$;
+
+revoke all on function public.decrement_order_stock(uuid) from public, anon, authenticated;
