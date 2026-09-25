@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { EncryptJWT, importSPKI } from 'jose';
 import { demoProducts } from './data/demo-products.js';
 import { getCardBrand, isValidCardNumber } from './features/payment/card-validation.js';
-import { addItem, addPurchase, removeItems } from './store/store.js';
+import { addItem, addPurchase, removeItems, replaceItems } from './store/store.js';
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 const BASE_FEE_IN_CENTS = 2000000;
@@ -117,7 +117,14 @@ export default function App() {
   useEffect(() => {
     fetch(apiUrl('/api/products'))
       .then((response) => { if (!response.ok) throw new Error('Could not load products'); return response.json(); })
-      .then((payload) => { setProducts(payload.data); setStatus('ready'); })
+      .then((payload) => {
+        setProducts(payload.data);
+        dispatch(replaceItems(cart.map((item) => {
+          const current = payload.data.find((product) => product.id === item.product.id || product.slug === item.product.slug);
+          return current ? { ...item, product: current } : item;
+        })));
+        setStatus('ready');
+      })
       .catch(() => { setProducts(demoProducts); setStatus('demo'); });
   }, []);
   useEffect(() => { setDetailImageIndex(0); }, [selectedProduct]);
