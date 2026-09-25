@@ -38,12 +38,16 @@ const translatedProducts = {
 };
 
 function ProductCard({ product, text, language }) {
+  const [imageIndex, setImageIndex] = useState(0);
   const translated = language === 'es' ? translatedProducts[product.id] : null;
   const name = translated?.name || product.name;
   const description = translated?.description || product.description;
   return (
     <article className="product-card">
-      <div className="product-image" aria-hidden="true"><span>{product.id === 'ceramic-mug' ? '☕' : '✦'}</span></div>
+      <div className="product-image" aria-label={`${name} image gallery`}>
+        {product.imageUrls?.length ? <img src={product.imageUrls[imageIndex]} alt={`${name} view ${imageIndex + 1}`} /> : <span aria-hidden="true">{product.id === 'ceramic-mug' ? '☕' : '✦'}</span>}
+        {product.imageUrls?.length > 1 && <div className="gallery-dots">{product.imageUrls.map((_, index) => <button key={index} className={index === imageIndex ? 'active' : ''} onClick={() => setImageIndex(index)} aria-label={`View ${index + 1}`} type="button" />)}</div>}
+      </div>
       <div className="product-card__content">
         <div className="product-card__heading"><h2>{name}</h2><span className="stock-badge">{product.stock} {text.available}</span></div>
         <p>{description}</p>
