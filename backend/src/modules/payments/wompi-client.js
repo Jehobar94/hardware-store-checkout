@@ -30,8 +30,16 @@ export class WompiClient {
     });
   }
 
+  async getTokenizationKey() {
+    return this.#request('/tokens/keys/tokenization', {
+      headers: { Authorization: `Bearer ${this.publicKey}` },
+    });
+  }
+
   async getTransaction(id) {
-    return this.#request(`/transactions/${encodeURIComponent(id)}`);
+    return this.#request(`/transactions/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${this.privateKey}` },
+    });
   }
 
   async #request(path, options = {}) {
@@ -39,8 +47,16 @@ export class WompiClient {
       ...options,
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     });
-    const payload = await response.json();
-    if (!response.ok) throw new HttpError(502, 'Wompi request failed', payload);
+    const rawBody = await response.text();
+    let payload;
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      payload = { raw: rawBody.slice(0, 500) };
+    }
+    if (!response.ok) {
+      throw new HttpError(502, `Wompi request failed (${response.status})`, payload);
+    }
     return payload;
   }
 }

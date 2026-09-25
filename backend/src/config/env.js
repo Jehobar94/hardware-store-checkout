@@ -12,4 +12,5 @@ export const wompiEnv = {
   publicKey: process.env.WOMPI_PUBLIC_KEY || '',
   privateKey: process.env.WOMPI_PRIVATE_KEY || '',
   integritySecret: process.env.WOMPI_INTEGRITY_SECRET || '',
+  eventSecret: process.env.WOMPI_EVENT_SECRET || '',
 };

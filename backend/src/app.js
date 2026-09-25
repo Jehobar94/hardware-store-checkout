@@ -8,7 +8,8 @@ import { WompiClient } from './modules/payments/wompi-client.js';
 import { PaymentService } from './modules/payments/payment-service.js';
 import { readJson } from './shared/request-body.js';
 
-export function createApp({ productController = buildProductController() } = {}) {
+export function createApp({ productController = buildProductController(), paymentService = null } = {}) {
+  const getPaymentService = () => paymentService || buildPaymentService();
   return async function app(request, response) {
     try {
       if (request.method === 'GET' && request.url === '/health') {
@@ -17,9 +18,18 @@ export function createApp({ productController = buildProductController() } = {})
       }
 
       if (request.method === 'POST' && request.url === '/api/payments') {
-        const paymentService = buildPaymentService();
-        const result = await paymentService.createPayment(await readJson(request));
+        const result = await getPaymentService().createPayment(await readJson(request));
         sendJson(response, 201, result);
+        return;
+      }
+      if (request.method === 'POST' && request.url === '/api/orders') {
+        const result = await getPaymentService().createOrder(await readJson(request));
+        sendJson(response, 201, result);
+        return;
+      }
+      if (request.method === 'POST' && request.url === '/api/webhooks/wompi') {
+        const result = await getPaymentService().handleWebhook(await readJson(request));
+        sendJson(response, 200, result);
         return;
       }
 
@@ -34,8 +44,14 @@ export function createApp({ productController = buildProductController() } = {})
         return;
       }
 
+      if (request.method === 'GET' && request.url === '/api/payments/tokenization-key') {
+        const result = await new WompiClient(wompiEnv).getTokenizationKey();
+        sendJson(response, 200, result);
+        return;
+      }
+
       if (request.method === 'GET' && request.url === '/api/payments/acceptance') {
-        const merchant = await buildPaymentService().getAcceptanceData();
+        const merchant = await getPaymentService().getAcceptanceData();
         sendJson(response, 200, { data: merchant });
         return;
       }
@@ -47,7 +63,13 @@ export function createApp({ productController = buildProductController() } = {})
 
       const paymentMatch = request.url.match(/^\/api\/payments\/([^/]+)$/);
       if (request.method === 'GET' && paymentMatch) {
-        const result = await buildPaymentService().syncPayment(paymentMatch[1]);
+        const result = await getPaymentService().syncPayment(paymentMatch[1]);
+        sendJson(response, 200, result);
+        return;
+      }
+      const orderMatch = request.url.match(/^\/api\/orders\/([^/]+)$/);
+      if (request.method === 'GET' && orderMatch) {
+        const result = await getPaymentService().syncOrder(orderMatch[1]);
         sendJson(response, 200, result);
         return;
       }
@@ -83,6 +105,7 @@ function buildPaymentService() {
     supabase,
     wompiClient: new WompiClient(wompiEnv),
     integritySecret: wompiEnv.integritySecret,
+    eventSecret: wompiEnv.eventSecret,
   });
 }
 

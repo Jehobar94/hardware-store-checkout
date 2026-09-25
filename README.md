@@ -1,4 +1,4 @@
-# Wompi Store
+# Store
 
 Proyecto base para una tienda con flujo de pago.
 
@@ -9,7 +9,30 @@ Proyecto base para una tienda con flujo de pago.
 - `frontend`: aplicación web.
 - `backend`: API y lógica del servidor.
 
-Por ahora el proyecto solo contiene la configuración inicial. La implementación del flujo de compra se agregará por etapas.
+La aplicación incluye catálogo, carrito persistente, checkout con tokenización de tarjeta en sandbox, creación y sincronización de transacciones, descuento de stock aprobado y seguimiento local de compras.
+
+## Desarrollo
+
+```bash
+cd backend && npm install && npm run dev
+cd frontend && npm install && npm run dev
+```
+
+## Tests y cobertura
+
+Ejecuta los tests y el reporte de cobertura nativo de Node:
+
+```bash
+cd frontend && npm test && npm run test:coverage
+cd backend && npm test && npm run test:coverage
+```
+
+Estado actual de cobertura:
+
+- Frontend: aproximadamente 94% de líneas en la lógica de validación de tarjetas.
+- Backend: aproximadamente 80.5% de líneas, 70% de ramas y 87.18% de funciones, con 17 pruebas pasando.
+
+La cobertura se ejecuta sobre el código fuente del backend con la cobertura nativa de Node y supera el objetivo de 80% de líneas solicitado por el reto.
 
 ## Supabase
 

@@ -52,5 +52,6 @@ function mapProduct(product) {
     priceInCents: Number(product.priceInCents ?? product.price_in_cents),
     originalPriceInCents: product.originalPriceInCents ?? (product.original_price_in_cents == null ? undefined : Number(product.original_price_in_cents)),
     imageUrls: product.imageUrls ?? product.image_urls ?? [],
+    freeShipping: Boolean(product.freeShipping ?? product.free_shipping),
   };
 }

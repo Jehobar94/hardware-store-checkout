@@ -1,4 +1,7 @@
 -- Limpia los productos de prueba anteriores y deja el teclado como producto inicial.
+alter table public.transactions
+add column if not exists base_fee bigint not null default 0;
+
 delete from public.products
 where slug in ('coffee-subscription', 'ceramic-mug');
 
@@ -22,8 +25,7 @@ values (
   'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX1.jpg',
   array[
     'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX1.jpg',
-    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX2.jpg',
-    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX3.jpg'
+    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX2.jpg'
   ]
 )
 on conflict (slug) do update set

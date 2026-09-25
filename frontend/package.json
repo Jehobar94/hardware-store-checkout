@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:coverage": "node --experimental-test-coverage --test-coverage-include='src/**/*.js' --test test/*.test.js"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.12.0",
     "@vitejs/plugin-react": "latest",
     "jose": "^6.2.12",
     "react": "latest",
     "react-dom": "latest",
+    "react-redux": "^9.3.0",
     "typescript": "latest",
     "vite": "latest"
   },

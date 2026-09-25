@@ -1,5 +1,34 @@
 export const demoProducts = [
   {
+    id: 'gaming-chair-px1',
+    name: 'Silla gamer PX1',
+    description: 'Silla gamer ergonómica con soporte envolvente para largas jornadas de trabajo y juego.',
+    priceInCents: 20000000,
+    originalPriceInCents: 40000000,
+    currency: 'COP',
+    stock: 5,
+    imageUrls: [
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Silla/SillaGamerPX1.jpg',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Silla/SIllaGamerpx2.jpg',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Silla/SilaGamerPX3.jpg',
+    ],
+  },
+  {
+    id: 'gaming-desk-px1',
+    name: 'Escritorio gamer PX1',
+    description: 'Escritorio gamer amplio y resistente para organizar tu estación de trabajo o juego.',
+    priceInCents: 98000000,
+    originalPriceInCents: 120000000,
+    currency: 'COP',
+    stock: 20,
+    freeShipping: true,
+    imageUrls: [
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Escritorios/EscritorioGamerpx1.webp',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Escritorios/EscritorioGamerPX2.jpg',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Escritorios/EscritorioGAmerPX3.jpg',
+    ],
+  },
+  {
     id: 'mechanical-keyboard-px1',
     name: 'Teclado mecánico PX1',
     description: 'Teclado mecánico compacto con iluminación RGB, conexión USB y diseño cómodo para trabajar o jugar.',
