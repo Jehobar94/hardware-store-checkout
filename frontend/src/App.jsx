@@ -7,6 +7,8 @@ import { addItem, addPurchase, removeItems, replaceItems } from './store/store.j
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 const BASE_FEE_IN_CENTS = 2000000;
+const DELIVERY_FEE_IN_CENTS = 2000000;
+const FREE_SHIPPING_THRESHOLD_IN_CENTS = 15000000;
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
@@ -18,6 +20,12 @@ function normalizeWompiPublicKey(value) {
 
 function formatCardNumber(value) {
   return value.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+function getDeliveryFee(items) {
+  const productsTotal = items.reduce((sum, item) => sum + item.product.priceInCents * item.quantity, 0);
+  const hasFreeShipping = items.length > 0 && items.every((item) => item.product.freeShipping);
+  return productsTotal >= FREE_SHIPPING_THRESHOLD_IN_CENTS || hasFreeShipping ? 0 : DELIVERY_FEE_IN_CENTS;
 }
 
 function getProductGallery(product) {
@@ -162,8 +170,9 @@ function CartSummary({ cart, onClose, onConfirm }) {
   const [confirmed, setConfirmed] = useState(false);
   const selectedItems = cart.filter((item) => selectedIds.includes(item.product.id));
   const productsTotal = selectedItems.reduce((sum, item) => sum + item.product.priceInCents * item.quantity, 0);
-  const total = productsTotal + BASE_FEE_IN_CENTS;
-  return <div className="checkout-backdrop"><section className="checkout-panel cart-summary-panel" aria-label="Carrito"><button className="close-button" type="button" onClick={onClose}>×</button><p className="eyebrow">Tu selección</p><h2>Carrito</h2>{cart.length === 0 ? <p className="empty-state">Tu carrito está vacío.</p> : <><div className="cart-items">{cart.map((item) => <label className={`cart-item ${selectedIds.includes(item.product.id) ? 'is-selected' : ''}`} key={item.product.id}><input className="cart-item__selector" type="checkbox" checked={selectedIds.includes(item.product.id)} onChange={() => { setConfirmed(false); setSelectedIds((ids) => ids.includes(item.product.id) ? ids.filter((id) => id !== item.product.id) : [...ids, item.product.id]); }} /><img src={item.product.imageUrls?.[0] || item.product.image_url} alt="" /><span className="cart-item__content"><strong>{item.product.name}</strong><span>{item.quantity} × {moneyFormatter.format(item.product.priceInCents / 100)}</span></span></label>)}</div>{selectedItems.length === 0 && <p className="selection-hint">Selecciona los productos que deseas pagar.</p>}<div className="cart-breakdown"><div><span>Productos seleccionados</span><strong>{moneyFormatter.format(productsTotal / 100)}</strong></div><div><span>Tarifa base</span><strong>{selectedItems.length ? moneyFormatter.format(BASE_FEE_IN_CENTS / 100) : moneyFormatter.format(0)}</strong></div></div><div className="cart-total"><span>Total seleccionado</span><strong>{moneyFormatter.format(total / 100)}</strong></div>{selectedItems.length > 0 && <label className="confirm-cart"><input type="radio" name="cart-confirmation" checked={confirmed} onChange={() => setConfirmed(true)} /> Confirmo que deseo continuar con esta compra</label>}<button className="primary-action full-action" type="button" onClick={() => onConfirm(selectedItems)} disabled={!confirmed || selectedItems.length === 0}>Continuar al pago</button></>}</section></div>;
+  const deliveryFee = getDeliveryFee(selectedItems);
+  const total = productsTotal + BASE_FEE_IN_CENTS + deliveryFee;
+  return <div className="checkout-backdrop"><section className="checkout-panel cart-summary-panel" aria-label="Carrito"><button className="close-button" type="button" onClick={onClose}>×</button><p className="eyebrow">Tu selección</p><h2>Carrito</h2>{cart.length === 0 ? <p className="empty-state">Tu carrito está vacío.</p> : <><div className="cart-items">{cart.map((item) => <label className={`cart-item ${selectedIds.includes(item.product.id) ? 'is-selected' : ''}`} key={item.product.id}><input className="cart-item__selector" type="checkbox" checked={selectedIds.includes(item.product.id)} onChange={() => { setConfirmed(false); setSelectedIds((ids) => ids.includes(item.product.id) ? ids.filter((id) => id !== item.product.id) : [...ids, item.product.id]); }} /><img src={item.product.imageUrls?.[0] || item.product.image_url} alt="" /><span className="cart-item__content"><strong>{item.product.name}</strong><span>{item.quantity} × {moneyFormatter.format(item.product.priceInCents / 100)}</span></span></label>)}</div>{selectedItems.length === 0 && <p className="selection-hint">Selecciona los productos que deseas pagar.</p>}<div className="cart-breakdown"><div><span>Productos seleccionados</span><strong>{moneyFormatter.format(productsTotal / 100)}</strong></div><div><span>Tarifa base</span><strong>{selectedItems.length ? moneyFormatter.format(BASE_FEE_IN_CENTS / 100) : moneyFormatter.format(0)}</strong></div><div><span>Envío</span><strong>{deliveryFee ? moneyFormatter.format(deliveryFee / 100) : 'Gratis'}</strong></div></div><div className="cart-total"><span>Total seleccionado</span><strong>{moneyFormatter.format(total / 100)}</strong></div>{selectedItems.length > 0 && <label className="confirm-cart"><input type="radio" name="cart-confirmation" checked={confirmed} onChange={() => setConfirmed(true)} /> Confirmo que deseo continuar con esta compra</label>}<button className="primary-action full-action" type="button" onClick={() => onConfirm(selectedItems)} disabled={!confirmed || selectedItems.length === 0}>Continuar al pago</button></>}</section></div>;
 }
 
 function PurchaseHistory({ purchases, onClose }) {
@@ -187,7 +196,8 @@ function Checkout({ cart, text, onClose, onOrderCreated, onPaymentComplete }) {
   const [order, setOrder] = useState(null);
   const brand = getCardBrand(cardNumber);
   const productsTotal = cart.reduce((sum, item) => sum + item.product.priceInCents * item.quantity, 0);
-  const total = productsTotal + BASE_FEE_IN_CENTS;
+  const deliveryFee = getDeliveryFee(cart);
+  const total = productsTotal + BASE_FEE_IN_CENTS + deliveryFee;
   useEffect(() => { localStorage.setItem('store-checkout-draft', JSON.stringify({ email, address, city, phone })); }, [email, address, city, phone]);
   useEffect(() => { fetch(apiUrl('/api/payments/acceptance')).then((response) => response.ok ? response.json() : null).then((payload) => setAcceptance(payload?.data || null)).catch(() => setAcceptance(null)); }, []);
   const handleExpiryChange = (event) => {
@@ -214,7 +224,7 @@ function Checkout({ cart, text, onClose, onOrderCreated, onPaymentComplete }) {
       const tokenResponse = await fetch(apiUrl('/api/payments/tokenize'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: encryptedCard }) });
       const tokenPayload = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenPayload.data?.id) throw new Error(tokenPayload.error?.reason || 'No fue posible tokenizar la tarjeta');
-      const paymentResponse = await fetch(apiUrl('/api/orders'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })), customer: { fullName: cardholder, email, phone }, delivery: { address, city }, acceptanceToken: acceptance?.presigned_acceptance?.acceptance_token, acceptPersonalAuth: acceptance?.presigned_personal_data_auth?.acceptance_token, paymentMethod: { type: 'CARD', token: tokenPayload.data.id, installments: 1 } }) });
+      const paymentResponse = await fetch(apiUrl('/api/orders'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })), customer: { fullName: cardholder, email, phone }, delivery: { address, city }, deliveryFee, acceptanceToken: acceptance?.presigned_acceptance?.acceptance_token, acceptPersonalAuth: acceptance?.presigned_personal_data_auth?.acceptance_token, paymentMethod: { type: 'CARD', token: tokenPayload.data.id, installments: 1 } }) });
       const paymentPayload = await paymentResponse.json();
       if (!paymentResponse.ok) throw new Error(paymentPayload.message || 'No fue posible crear el pedido');
       const localTransactionId = paymentPayload.orderId;
