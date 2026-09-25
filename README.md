@@ -34,6 +34,16 @@ Estado actual de cobertura verificado:
 
 La cobertura se ejecuta sobre el código fuente del backend con la cobertura nativa de Node y supera el objetivo de más de 80% de líneas solicitado por el reto.
 
+## Webhook de pagos
+
+Configura en el panel del proveedor de pagos la URL:
+
+```text
+https://hardware-store-checkout-api.onrender.com/api/webhooks/wompi
+```
+
+El endpoint acepta eventos `transaction.updated`, valida el checksum con `WOMPI_EVENT_SECRET` (o el nombre legado `WOMPI_EVENTS_SECRET`), actualiza la orden y descuenta el stock mediante una operación idempotente.
+
 ## Supabase
 
 Copia `backend/.env.example` como `backend/.env` y completa las variables de Supabase localmente. Nunca subas las claves reales al repositorio.
