@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import { HttpError } from '../../shared/http-error.js';
 
 export const BASE_FEE_IN_CENTS = 2000000;
+export const DELIVERY_FEE_IN_CENTS = 2000000;
+export const FREE_SHIPPING_THRESHOLD_IN_CENTS = 15000000;
 
 export class PaymentService {
   constructor({ supabase, wompiClient, integritySecret = '', eventSecret = '' }) {
@@ -33,8 +35,8 @@ export class PaymentService {
       department: input.delivery.department,
     });
     const reference = input.reference || `STORE-${crypto.randomUUID()}`;
-    const deliveryFee = input.deliveryFee || 0;
     const productAmount = product.price_in_cents * input.quantity;
+    const deliveryFee = product.free_shipping || productAmount >= FREE_SHIPPING_THRESHOLD_IN_CENTS ? 0 : DELIVERY_FEE_IN_CENTS;
     const total = productAmount + BASE_FEE_IN_CENTS + deliveryFee;
     const signature = crypto.createHash('sha256').update(`${reference}${total}${product.currency}${this.integritySecret}`).digest('hex');
     const transaction = await this.#insert('transactions', {
@@ -71,6 +73,7 @@ export class PaymentService {
 
   async createOrder(input) {
     if (!Array.isArray(input.items) || input.items.length === 0) throw new HttpError(400, 'Order items are required');
+    if (input.items.length > 50) throw new HttpError(400, 'Too many order items');
     const products = [];
     for (const item of input.items) {
       if (!item.productId || !Number.isInteger(item.quantity) || item.quantity < 1) throw new HttpError(400, 'Order item is invalid');
@@ -78,10 +81,11 @@ export class PaymentService {
       if (product.stock < item.quantity) throw new HttpError(409, `Insufficient stock for ${product.name}`);
       products.push({ product, quantity: item.quantity });
     }
+    this.#validateCustomerAndDelivery(input);
     const customer = await this.#insert('customers', { full_name: input.customer.fullName, email: input.customer.email, phone: input.customer.phone });
     const delivery = await this.#insert('deliveries', { customer_id: customer.id, address_line: input.delivery.address, city: input.delivery.city, department: input.delivery.department });
     const productAmount = products.reduce((sum, item) => sum + item.product.price_in_cents * item.quantity, 0);
-    const deliveryFee = input.deliveryFee || 0;
+    const deliveryFee = this.#calculateDeliveryFee(products);
     const total = productAmount + BASE_FEE_IN_CENTS + deliveryFee;
     const order = await this.#insert('orders', { customer_id: customer.id, delivery_id: delivery.id, product_amount: productAmount, base_fee: BASE_FEE_IN_CENTS, delivery_fee: deliveryFee, total_amount: total, currency: products[0].product.currency, status: 'pending' });
     for (const item of products) await this.#insert('order_items', { order_id: order.id, product_id: item.product.id, quantity: item.quantity, unit_price_in_cents: item.product.price_in_cents });
@@ -130,7 +134,8 @@ export class PaymentService {
     if (event !== 'transaction.updated' || !transaction?.id || !transaction?.status) {
       throw new HttpError(400, 'Unsupported or incomplete Wompi event');
     }
-    if (this.eventSecret) {
+    if (!this.eventSecret) throw new HttpError(503, 'Webhook signing secret is not configured');
+    {
       const properties = payload.signature?.properties || [];
       const values = properties.map((property) => property.split('.').reduce((value, key) => value?.[key], { ...payload.data, transaction: payload.data.transaction }));
       const source = `${values.join('')}${payload.timestamp}${this.eventSecret}`;
@@ -172,5 +177,23 @@ export class PaymentService {
     if (!input.productId || !Number.isInteger(input.quantity) || input.quantity < 1 || !input.customer?.email || !input.delivery?.address || !input.delivery?.city || !input.paymentMethod || !input.acceptanceToken || !input.acceptPersonalAuth) {
       throw new HttpError(400, 'Payment data is incomplete');
     }
+    this.#validateCustomerAndDelivery(input);
+  }
+
+  #validateCustomerAndDelivery(input) {
+    const email = input.customer?.email;
+    const fullName = input.customer?.fullName;
+    const phone = input.customer?.phone;
+    const address = input.delivery?.address;
+    const city = input.delivery?.city;
+    if (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'Customer email is invalid');
+    if (![fullName, address, city].every((value) => typeof value === 'string' && value.trim().length >= 2 && value.length <= 160)) throw new HttpError(400, 'Customer or delivery data is invalid');
+    if (phone !== undefined && (typeof phone !== 'string' || phone.trim().length < 7 || phone.length > 30)) throw new HttpError(400, 'Customer phone is invalid');
+  }
+
+  #calculateDeliveryFee(products) {
+    const productAmount = products.reduce((sum, item) => sum + item.product.price_in_cents * item.quantity, 0);
+    const allFreeShipping = products.length > 0 && products.every((item) => item.product.free_shipping);
+    return productAmount >= FREE_SHIPPING_THRESHOLD_IN_CENTS || allFreeShipping ? 0 : DELIVERY_FEE_IN_CENTS;
   }
 }

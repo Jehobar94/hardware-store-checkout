@@ -32,6 +32,14 @@ function validInput(overrides = {}) {
   return { productId: product.id, quantity: 1, customer: { fullName: 'Test User', email: 'test@example.com', phone: '3000000000' }, delivery: { address: 'Street 1', city: 'Medellín' }, acceptanceToken: 'acceptance', acceptPersonalAuth: 'personal', paymentMethod: { type: 'CARD', token: 'tok_test' }, ...overrides };
 }
 
+function signedWebhook(status = 'APPROVED', id = 'wompi-order-1') {
+  const transaction = { id, status, amount_in_cents: 100 };
+  const payload = { event: 'transaction.updated', data: { transaction }, timestamp: 123, signature: { properties: ['transaction.id', 'transaction.status', 'transaction.amount_in_cents'] } };
+  const values = payload.signature.properties.map((property) => property.split('.').reduce((value, key) => value?.[key], payload.data));
+  payload.signature.checksum = crypto.createHash('sha256').update(`${values.join('')}${payload.timestamp}event-secret`).digest('hex');
+  return payload;
+}
+
 function orderSupabaseDouble({ status = 'pending', rpcError = null } = {}) {
   const updates = [];
   const rpcCalls = [];
@@ -112,16 +120,16 @@ test('rechaza una orden cuando uno de los productos no tiene stock', async () =>
 
 test('webhook aprobado descuenta el stock de la orden una sola vez', async () => {
   const supabase = orderSupabaseDouble();
-  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: '' });
-  const payload = { event: 'transaction.updated', data: { transaction: { id: 'wompi-order-1', status: 'APPROVED' } } };
+  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: 'event-secret' });
+  const payload = signedWebhook();
   assert.deepEqual(await service.handleWebhook(payload), { received: true, matched: true, status: 'approved' });
   assert.deepEqual(supabase.rpcCalls[0], { name: 'decrement_order_stock', args: { p_order_id: 'order-1' } });
 });
 
 test('webhook rechazado actualiza estado y no descuenta stock', async () => {
   const supabase = orderSupabaseDouble();
-  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: '' });
-  const result = await service.handleWebhook({ event: 'transaction.updated', data: { transaction: { id: 'wompi-order-1', status: 'DECLINED' } } });
+  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: 'event-secret' });
+  const result = await service.handleWebhook(signedWebhook('DECLINED'));
   assert.equal(result.status, 'declined');
   assert.equal(supabase.rpcCalls.length, 0);
   assert.equal(supabase.updates.at(-1).values.status, 'declined');
@@ -143,8 +151,8 @@ test('webhook acepta una firma válida y eventos no asociados', async () => {
   const source = `${values.join('')}${payload.timestamp}event-secret`;
   payload.signature.checksum = crypto.createHash('sha256').update(source).digest('hex');
   assert.equal((await service.handleWebhook(payload)).matched, true);
-  const unmatchedService = new PaymentService({ supabase, wompiClient: {}, eventSecret: '' });
-  const unmatched = await unmatchedService.handleWebhook({ event: 'transaction.updated', data: { transaction: { id: 'unknown', status: 'APPROVED' } } });
+  const unmatchedService = new PaymentService({ supabase, wompiClient: {}, eventSecret: 'event-secret' });
+  const unmatched = await unmatchedService.handleWebhook(signedWebhook('APPROVED', 'unknown'));
   assert.equal(unmatched.matched, false);
 });
 
@@ -155,8 +163,8 @@ test('webhook rechaza eventos incompletos', async () => {
 
 test('evento duplicado no vuelve a descontar stock', async () => {
   const supabase = orderSupabaseDouble({ status: 'approved' });
-  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: '' });
-  const result = await service.handleWebhook({ event: 'transaction.updated', data: { transaction: { id: 'wompi-order-1', status: 'APPROVED' } } });
+  const service = new PaymentService({ supabase, wompiClient: {}, eventSecret: 'event-secret' });
+  const result = await service.handleWebhook(signedWebhook());
   assert.equal(result.status, 'approved');
   assert.equal(supabase.rpcCalls.length, 0);
 });

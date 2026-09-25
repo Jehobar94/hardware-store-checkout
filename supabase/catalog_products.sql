@@ -72,6 +72,7 @@ create or replace function public.decrement_product_stock(
 returns void
 language plpgsql
 security definer
+set search_path = public
 as $$
 begin
   update public.products
@@ -85,3 +86,5 @@ begin
   end if;
 end;
 $$;
+
+revoke all on function public.decrement_product_stock(uuid, integer) from public, anon, authenticated;
