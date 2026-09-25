@@ -7,6 +7,8 @@ button { font: inherit; cursor: pointer; }
 .site-header { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; border-bottom: 1px solid #d9ddd5; }
 .brand { color: #21302a; font-size: 1.2rem; font-weight: 700; letter-spacing: -.04em; text-decoration: none; }
 .brand span { color: #bc6b43; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.language-button { border: 0; background: transparent; color: #68716b; padding: 9px 8px; font-size: .82rem; }
 .cart-button { border: 1px solid #bfc8bd; border-radius: 999px; background: transparent; padding: 9px 14px; color: #21302a; }
 .cart-button span { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 5px; border-radius: 50%; background: #21302a; color: white; font-size: .75rem; }
 .hero { padding: 92px 0 88px; max-width: 650px; }
