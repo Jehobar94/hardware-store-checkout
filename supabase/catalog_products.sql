@@ -1,4 +1,4 @@
--- Limpia los productos de prueba anteriores y deja el teclado como producto inicial.
+-- Configuración inicial del catálogo y del inventario.
 alter table public.transactions
 add column if not exists base_fee bigint not null default 0;
 
@@ -37,7 +37,7 @@ on conflict (slug) do update set
   image_urls = excluded.image_urls,
   updated_at = now();
 
--- Segundo producto: mouse con tres vistas cargadas en Storage.
+-- Producto adicional del catálogo: mouse con sus imágenes.
 insert into public.products (
   slug, name, description, price_in_cents, original_price_in_cents, currency, stock, image_url, image_urls
 )
