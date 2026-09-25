@@ -32,13 +32,21 @@ const copy = {
   },
 };
 
-function ProductCard({ product, text }) {
+const translatedProducts = {
+  'coffee-subscription': { name: 'Suscripción de café', description: 'Café fresco entregado cada mes.' },
+  'ceramic-mug': { name: 'Taza de cerámica', description: 'Una taza sencilla para el ritual diario del café.' },
+};
+
+function ProductCard({ product, text, language }) {
+  const translated = language === 'es' ? translatedProducts[product.id] : null;
+  const name = translated?.name || product.name;
+  const description = translated?.description || product.description;
   return (
     <article className="product-card">
       <div className="product-image" aria-hidden="true"><span>{product.id === 'ceramic-mug' ? '☕' : '✦'}</span></div>
       <div className="product-card__content">
-        <div className="product-card__heading"><h2>{product.name}</h2><span className="stock-badge">{product.stock} {text.available}</span></div>
-        <p>{product.description}</p>
+        <div className="product-card__heading"><h2>{name}</h2><span className="stock-badge">{product.stock} {text.available}</span></div>
+        <p>{description}</p>
         <div className="product-card__footer"><strong>{moneyFormatter.format(product.priceInCents / 100)}</strong><button type="button">{text.viewProduct}</button></div>
       </div>
     </article>
@@ -63,7 +71,7 @@ export default function App() {
       <header className="site-header"><a className="brand" href="/">northstar<span>store</span></a><div className="header-actions"><button className="language-button" type="button" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>{text.language}</button><button className="cart-button" type="button" aria-label={text.cart}>{text.cart} <span>0</span></button></div></header>
       <main>
         <section className="hero"><p className="eyebrow">{text.eyebrow}</p><h1>{text.title}</h1><p className="hero__copy">{text.intro}</p></section>
-        <section className="catalog" aria-labelledby="catalog-title"><div className="section-heading"><h2 id="catalog-title">{text.collection}</h2>{status === 'demo' && <span className="status-note">{text.localPreview}</span>}</div>{status === 'loading' && <p className="empty-state">{text.loading}</p>}{products.length > 0 && <div className="product-grid">{products.map((product) => <ProductCard key={product.id} product={product} text={text} />)}</div>}</section>
+        <section className="catalog" aria-labelledby="catalog-title"><div className="section-heading"><h2 id="catalog-title">{text.collection}</h2>{status === 'demo' && <span className="status-note">{text.localPreview}</span>}</div>{status === 'loading' && <p className="empty-state">{text.loading}</p>}{products.length > 0 && <div className="product-grid">{products.map((product) => <ProductCard key={product.id} product={product} text={text} language={language} />)}</div>}</section>
       </main>
       <footer className="site-footer">{text.footer}</footer>
     </div>
