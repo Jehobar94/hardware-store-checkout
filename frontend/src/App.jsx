@@ -5,6 +5,12 @@ import { getCardBrand, isValidCardNumber } from './features/payment/card-validat
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
+function normalizeWompiPublicKey(value) {
+  const clean = value.replace(/\\n/g, ' ').replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----/g, '').replace(/\s+/g, '');
+  const lines = clean.match(/.{1,64}/g)?.join('\n') || clean;
+  return `-----BEGIN PUBLIC KEY-----\n${lines}\n-----END PUBLIC KEY-----`;
+}
+
 const copy = {
   en: {
     language: 'Español',
@@ -128,7 +134,7 @@ function Checkout({ cart, text, onClose }) {
       const keyResponse = await fetch(`${config.apiUrl}/tokens/keys/tokenization`, { headers: { Authorization: `Bearer ${config.publicKey}` } });
       const keyPayload = await keyResponse.json();
       if (!keyResponse.ok || !keyPayload.data?.publicKey) throw new Error('No fue posible obtener la llave de cifrado de Wompi');
-      const tokenizationKey = await importSPKI(keyPayload.data.publicKey, 'RSA-OAEP-256');
+      const tokenizationKey = await importSPKI(normalizeWompiPublicKey(keyPayload.data.publicKey), 'RSA-OAEP-256');
       const encryptedCard = await new EncryptJWT({ number: cardNumber.replace(/\D/g, ''), cvc, exp_month: month, exp_year: year, card_holder: cardholder }).setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' }).encrypt(tokenizationKey);
       const tokenResponse = await fetch(`${config.apiUrl}/tokens/cards`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.publicKey}` }, body: JSON.stringify({ payload: encryptedCard }) });
       const tokenPayload = await tokenResponse.json();
