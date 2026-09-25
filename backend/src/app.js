@@ -23,6 +23,17 @@ export function createApp({ productController = buildProductController() } = {})
         return;
       }
 
+      if (request.method === 'POST' && request.url === '/api/payments/tokenize') {
+        const payload = await readJson(request);
+        if (!payload?.payload) {
+          sendJson(response, 400, { message: 'Encrypted card payload is required' });
+          return;
+        }
+        const result = await new WompiClient(wompiEnv).tokenizeEncryptedCard(payload.payload);
+        sendJson(response, 200, result);
+        return;
+      }
+
       if (request.method === 'GET' && request.url === '/api/payments/acceptance') {
         const merchant = await buildPaymentService().getAcceptanceData();
         sendJson(response, 200, { data: merchant });

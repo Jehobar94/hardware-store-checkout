@@ -22,6 +22,14 @@ export class WompiClient {
     });
   }
 
+  async tokenizeEncryptedCard(payload) {
+    return this.#request('/tokens/cards', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.publicKey}` },
+      body: JSON.stringify({ payload }),
+    });
+  }
+
   async getTransaction(id) {
     return this.#request(`/transactions/${encodeURIComponent(id)}`);
   }

@@ -136,7 +136,7 @@ function Checkout({ cart, text, onClose }) {
       if (!keyResponse.ok || !keyPayload.data?.publicKey) throw new Error('No fue posible obtener la llave de cifrado de Wompi');
       const tokenizationKey = await importSPKI(normalizeWompiPublicKey(keyPayload.data.publicKey), 'RSA-OAEP-256');
       const encryptedCard = await new EncryptJWT({ number: cardNumber.replace(/\D/g, ''), cvc, exp_month: month, exp_year: year, card_holder: cardholder }).setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' }).encrypt(tokenizationKey);
-      const tokenResponse = await fetch(`${config.apiUrl}/tokens/cards`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.publicKey}` }, body: JSON.stringify({ payload: encryptedCard }) });
+      const tokenResponse = await fetch('/api/payments/tokenize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: encryptedCard }) });
       const tokenPayload = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenPayload.data?.id) throw new Error(tokenPayload.error?.reason || 'No fue posible tokenizar la tarjeta');
       const item = cart[0];
