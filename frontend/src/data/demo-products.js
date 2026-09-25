@@ -12,4 +12,17 @@ export const demoProducts = [
       'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX3.jpg',
     ],
   },
-]; 
+  {
+    id: 'wireless-mouse-px1',
+    name: 'Mouse inalámbrico PX1',
+    description: 'Mouse inalámbrico ergonómico con seguimiento preciso y batería de larga duración.',
+    priceInCents: 8990000,
+    currency: 'COP',
+    stock: 10,
+    imageUrls: [
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/Mousepx1.jpg',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/MousePX2.jpg',
+      'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/MousePX3.jpg',
+    ],
+  },
+];

@@ -29,3 +29,29 @@ on conflict (slug) do update set
   image_url = excluded.image_url,
   image_urls = excluded.image_urls,
   updated_at = now();
+
+-- Segundo producto: mouse con tres vistas cargadas en Storage.
+insert into public.products (
+  slug, name, description, price_in_cents, currency, stock, image_url, image_urls
+)
+values (
+  'wireless-mouse-px1',
+  'Mouse inalámbrico PX1',
+  'Mouse inalámbrico ergonómico con seguimiento preciso y batería de larga duración.',
+  8990000,
+  'COP',
+  10,
+  'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/Mousepx1.jpg',
+  array[
+    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/Mousepx1.jpg',
+    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/MousePX2.jpg',
+    'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/MousePX3.jpg'
+  ]
+)
+on conflict (slug) do update set
+  description = excluded.description,
+  price_in_cents = excluded.price_in_cents,
+  stock = excluded.stock,
+  image_url = excluded.image_url,
+  image_urls = excluded.image_urls,
+  updated_at = now();
