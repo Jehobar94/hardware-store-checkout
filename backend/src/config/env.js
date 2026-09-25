@@ -6,3 +6,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 }
 
 export const env = { host, port };
+
+export const wompiEnv = {
+  apiUrl: process.env.WOMPI_API_URL || 'https://api-sandbox.co.uat.wompi.dev/v1',
+  publicKey: process.env.WOMPI_PUBLIC_KEY || '',
+  privateKey: process.env.WOMPI_PRIVATE_KEY || '',
+};

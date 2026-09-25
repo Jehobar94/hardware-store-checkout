@@ -3,12 +3,23 @@ import { ProductController } from './modules/products/product-controller.js';
 import { ProductRepository } from './modules/products/product-repository.js';
 import { ProductService } from './modules/products/product-service.js';
 import { createSupabaseClient } from './config/supabase-client.js';
+import { wompiEnv } from './config/env.js';
+import { WompiClient } from './modules/payments/wompi-client.js';
+import { PaymentService } from './modules/payments/payment-service.js';
+import { readJson } from './shared/request-body.js';
 
 export function createApp({ productController = buildProductController() } = {}) {
   return async function app(request, response) {
     try {
       if (request.method === 'GET' && request.url === '/health') {
         sendJson(response, 200, { status: 'ok' });
+        return;
+      }
+
+      if (request.method === 'POST' && request.url === '/api/payments') {
+        const paymentService = buildPaymentService();
+        const result = await paymentService.createPayment(await readJson(request));
+        sendJson(response, 201, result);
         return;
       }
 
@@ -32,6 +43,17 @@ export function createApp({ productController = buildProductController() } = {})
       });
     }
   };
+}
+
+function buildPaymentService() {
+  const supabase = createSupabaseClient();
+  if (!supabase || !wompiEnv.publicKey) {
+    throw new Error('Payment integration is not configured');
+  }
+  return new PaymentService({
+    supabase,
+    wompiClient: new WompiClient(wompiEnv),
+  });
 }
 
 function buildProductController() {
