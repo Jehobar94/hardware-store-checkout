@@ -7,6 +7,8 @@ import { addItem, addPurchase, removeItems } from './store/store.js';
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 const BASE_FEE_IN_CENTS = 2000000;
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
 function normalizeWompiPublicKey(value) {
   const clean = value.replace(/\\n/g, ' ').replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----/g, '').replace(/\s+/g, '');
@@ -110,10 +112,10 @@ export default function App() {
     dispatch(addPurchase(purchase));
     dispatch(removeItems(purchasedItems.map((item) => item.product.id)));
   };
-  const refreshProducts = () => fetch('/api/products').then((response) => response.ok ? response.json() : null).then((payload) => { if (payload?.data) setProducts(payload.data); });
+  const refreshProducts = () => fetch(apiUrl('/api/products')).then((response) => response.ok ? response.json() : null).then((payload) => { if (payload?.data) setProducts(payload.data); });
 
   useEffect(() => {
-    fetch('/api/products')
+    fetch(apiUrl('/api/products'))
       .then((response) => { if (!response.ok) throw new Error('Could not load products'); return response.json(); })
       .then((payload) => { setProducts(payload.data); setStatus('ready'); })
       .catch(() => { setProducts(demoProducts); setStatus('demo'); });
@@ -176,7 +178,7 @@ function Checkout({ cart, text, onClose, onOrderCreated, onPaymentComplete }) {
   const productsTotal = cart.reduce((sum, item) => sum + item.product.priceInCents * item.quantity, 0);
   const total = productsTotal + BASE_FEE_IN_CENTS;
   useEffect(() => { localStorage.setItem('store-checkout-draft', JSON.stringify({ email, address, city, phone })); }, [email, address, city, phone]);
-  useEffect(() => { fetch('/api/payments/acceptance').then((response) => response.ok ? response.json() : null).then((payload) => setAcceptance(payload?.data || null)).catch(() => setAcceptance(null)); }, []);
+  useEffect(() => { fetch(apiUrl('/api/payments/acceptance')).then((response) => response.ok ? response.json() : null).then((payload) => setAcceptance(payload?.data || null)).catch(() => setAcceptance(null)); }, []);
   const handleExpiryChange = (event) => {
     const digits = event.target.value.replace(/\D/g, '').slice(0, 4);
     setExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
@@ -187,28 +189,28 @@ function Checkout({ cart, text, onClose, onOrderCreated, onPaymentComplete }) {
     try {
       const [month, year] = expiry.replace(/\s/g, '').split('/');
       if (!/^\d{2}$/.test(month) || Number(month) < 1 || Number(month) > 12 || !/^\d{2}$/.test(year)) throw new Error('La fecha debe tener formato MM/AA, por ejemplo 12/30');
-      const configResponse = await fetch('/api/payments/tokenization-config');
+      const configResponse = await fetch(apiUrl('/api/payments/tokenization-config'));
       const configPayload = await configResponse.json();
       if (!configResponse.ok || !configPayload.data?.apiUrl || !configPayload.data?.publicKey) {
         throw new Error(configPayload.message || 'La configuración de pagos no está disponible');
       }
       const config = configPayload.data;
-      const keyResponse = await fetch('/api/payments/tokenization-key');
+      const keyResponse = await fetch(apiUrl('/api/payments/tokenization-key'));
       const keyPayload = await keyResponse.json();
       if (!keyResponse.ok || !keyPayload.data?.publicKey) throw new Error('No fue posible obtener la llave de cifrado de Wompi');
       const tokenizationKey = await importSPKI(normalizeWompiPublicKey(keyPayload.data.publicKey), 'RSA-OAEP-256');
       const encryptedCard = await new EncryptJWT({ number: cardNumber.replace(/\D/g, ''), cvc, exp_month: month, exp_year: year, card_holder: cardholder }).setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' }).encrypt(tokenizationKey);
-      const tokenResponse = await fetch('/api/payments/tokenize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: encryptedCard }) });
+      const tokenResponse = await fetch(apiUrl('/api/payments/tokenize'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: encryptedCard }) });
       const tokenPayload = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenPayload.data?.id) throw new Error(tokenPayload.error?.reason || 'No fue posible tokenizar la tarjeta');
-      const paymentResponse = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })), customer: { fullName: cardholder, email, phone }, delivery: { address, city }, acceptanceToken: acceptance?.presigned_acceptance?.acceptance_token, acceptPersonalAuth: acceptance?.presigned_personal_data_auth?.acceptance_token, paymentMethod: { type: 'CARD', token: tokenPayload.data.id, installments: 1 } }) });
+      const paymentResponse = await fetch(apiUrl('/api/orders'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })), customer: { fullName: cardholder, email, phone }, delivery: { address, city }, acceptanceToken: acceptance?.presigned_acceptance?.acceptance_token, acceptPersonalAuth: acceptance?.presigned_personal_data_auth?.acceptance_token, paymentMethod: { type: 'CARD', token: tokenPayload.data.id, installments: 1 } }) });
       const paymentPayload = await paymentResponse.json();
       if (!paymentResponse.ok) throw new Error(paymentPayload.message || 'No fue posible crear el pedido');
       const localTransactionId = paymentPayload.orderId;
         localStorage.setItem('store-active-transaction', JSON.stringify({ id: localTransactionId, wompiId: paymentPayload.wompi?.id, status: 'pending', createdAt: new Date().toISOString() }));
         let syncedPayment = null;
         for (let attempt = 0; attempt < 8; attempt += 1) {
-          const syncResponse = await fetch(`/api/orders/${encodeURIComponent(localTransactionId)}`);
+          const syncResponse = await fetch(apiUrl(`/api/orders/${encodeURIComponent(localTransactionId)}`));
           const syncPayload = await syncResponse.json();
           if (!syncResponse.ok) throw new Error(syncPayload.message || 'No fue posible confirmar el pago del pedido');
           syncedPayment = syncPayload;

@@ -11,6 +11,18 @@ import { readJson } from './shared/request-body.js';
 export function createApp({ productController = buildProductController(), paymentService = null } = {}) {
   const getPaymentService = () => paymentService || buildPaymentService();
   return async function app(request, response) {
+    const allowedOrigin = process.env.FRONTEND_ORIGIN || '*';
+    if (typeof response.setHeader === 'function') {
+      response.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+      response.setHeader('Vary', 'Origin');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    }
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     try {
       if (request.method === 'GET' && request.url === '/health') {
         sendJson(response, 200, { status: 'ok' });
