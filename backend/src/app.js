@@ -2,6 +2,7 @@ import { sendJson } from './shared/http-response.js';
 import { ProductController } from './modules/products/product-controller.js';
 import { ProductRepository } from './modules/products/product-repository.js';
 import { ProductService } from './modules/products/product-service.js';
+import { createSupabaseClient } from './config/supabase-client.js';
 
 export function createApp({ productController = buildProductController() } = {}) {
   return async function app(request, response) {
@@ -34,7 +35,7 @@ export function createApp({ productController = buildProductController() } = {})
 }
 
 function buildProductController() {
-  const repository = new ProductRepository();
+  const repository = new ProductRepository(undefined, createSupabaseClient());
   const service = new ProductService(repository);
   return new ProductController(service);
 }
