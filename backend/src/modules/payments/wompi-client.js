@@ -17,7 +17,7 @@ export class WompiClient {
   async createTransaction(payload) {
     return this.#request('/transactions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.publicKey}` },
+      headers: { Authorization: `Bearer ${this.privateKey}` },
       body: JSON.stringify(payload),
     });
   }
