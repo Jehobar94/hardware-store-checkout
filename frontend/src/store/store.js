@@ -6,6 +6,7 @@ const readStorage = (key, fallback) => {
 
 const cartSlice = createSlice({ name: 'cart', initialState: readStorage('store-cart', []), reducers: {
   addItem: (state, action) => [action.payload, ...state.filter((item) => item.product.id !== action.payload.product.id)],
+  replaceItems: (_state, action) => action.payload,
   removeItems: (state, action) => state.filter((item) => !action.payload.includes(item.product.id)),
   clearCart: () => [],
 } });
@@ -13,7 +14,7 @@ const purchasesSlice = createSlice({ name: 'purchases', initialState: readStorag
   addPurchase: (state, action) => [action.payload, ...state],
 } });
 
-export const { addItem, removeItems, clearCart } = cartSlice.actions;
+export const { addItem, replaceItems, removeItems, clearCart } = cartSlice.actions;
 export const { addPurchase } = purchasesSlice.actions;
 export const store = configureStore({ reducer: { cart: cartSlice.reducer, purchases: purchasesSlice.reducer } });
 store.subscribe(() => {
