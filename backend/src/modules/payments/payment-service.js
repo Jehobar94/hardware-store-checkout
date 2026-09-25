@@ -7,6 +7,11 @@ export class PaymentService {
     this.wompiClient = wompiClient;
   }
 
+  async getAcceptanceData() {
+    const merchant = await this.wompiClient.getMerchantInfo();
+    return merchant.data;
+  }
+
   async createPayment(input) {
     this.#validate(input);
     const product = await this.#getProduct(input.productId);
