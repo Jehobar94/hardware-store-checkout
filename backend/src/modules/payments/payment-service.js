@@ -56,6 +56,21 @@ export class PaymentService {
     }
   }
 
+  async syncPayment(transactionId) {
+    const { data: local, error } = await this.supabase.from('transactions').select('*').eq('id', transactionId).single();
+    if (error) throw error;
+    if (!local.wompi_transaction_id) throw new HttpError(409, 'Wompi transaction is not available yet');
+    if (local.status === 'approved') return { transactionId, status: 'approved' };
+    const result = await this.wompiClient.getTransaction(local.wompi_transaction_id);
+    const status = String(result.data.status || '').toLowerCase();
+    await this.#update('transactions', transactionId, { status });
+    if (status === 'approved') {
+      const { error: stockError } = await this.supabase.rpc('decrement_product_stock', { product_id: local.product_id, quantity_to_decrement: local.quantity });
+      if (stockError && !stockError.message.includes('already processed')) throw stockError;
+    }
+    return { transactionId, status, wompi: result.data };
+  }
+
   async #getProduct(id) {
     const { data, error } = await this.supabase.from('products').select('*').eq('id', id).eq('is_active', true).maybeSingle();
     if (error) throw error;

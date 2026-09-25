@@ -62,3 +62,24 @@ on conflict (slug) do update set
   image_url = excluded.image_url,
   image_urls = excluded.image_urls,
   updated_at = now();
+
+create or replace function public.decrement_product_stock(
+  p_product_id uuid,
+  p_quantity_to_decrement integer
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  update public.products
+  set stock = stock - p_quantity_to_decrement,
+      updated_at = now()
+  where id = p_product_id
+    and stock >= p_quantity_to_decrement;
+
+  if not found then
+    raise exception 'insufficient stock or product not found';
+  end if;
+end;
+$$;

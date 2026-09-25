@@ -23,6 +23,13 @@ export function createApp({ productController = buildProductController() } = {})
         return;
       }
 
+      const paymentMatch = request.url.match(/^\/api\/payments\/([^/]+)$/);
+      if (request.method === 'GET' && paymentMatch) {
+        const result = await buildPaymentService().syncPayment(paymentMatch[1]);
+        sendJson(response, 200, result);
+        return;
+      }
+
       if (request.method === 'GET' && request.url === '/api/products') {
         await productController.list(request, response);
         return;
