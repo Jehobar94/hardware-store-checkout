@@ -1,9 +1,13 @@
 export function getSupabaseConfig(environment = process.env) {
   return {
-    url: environment.SUPABASE_URL || '',
+    url: normalizeSupabaseUrl(environment.SUPABASE_URL || ''),
     anonKey: environment.SUPABASE_ANON_KEY || '',
     serviceRoleKey: environment.SUPABASE_SERVICE_ROLE_KEY || '',
   };
+}
+
+function normalizeSupabaseUrl(value) {
+  return value.replace(/\/rest\/v1\/?$/, '');
 }
 
 export function hasSupabaseConfig(environment = process.env) {
