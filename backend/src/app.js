@@ -99,6 +99,7 @@ export function createApp({ productController = buildProductController(), paymen
 
       sendJson(response, 404, { message: 'Route not found' });
     } catch (error) {
+      console.error('Request failed', request.method, request.url, error);
       const statusCode = error.statusCode || 500;
       sendJson(response, statusCode, {
         message: statusCode === 500 ? 'Internal server error' : error.message,
