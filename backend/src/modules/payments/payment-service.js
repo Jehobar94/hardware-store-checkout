@@ -2,9 +2,10 @@ import crypto from 'node:crypto';
 import { HttpError } from '../../shared/http-error.js';
 
 export class PaymentService {
-  constructor({ supabase, wompiClient }) {
+  constructor({ supabase, wompiClient, integritySecret = '' }) {
     this.supabase = supabase;
     this.wompiClient = wompiClient;
+    this.integritySecret = integritySecret;
   }
 
   async getAcceptanceData() {
@@ -30,6 +31,7 @@ export class PaymentService {
     });
     const reference = input.reference || `STORE-${crypto.randomUUID()}`;
     const total = product.price_in_cents * input.quantity + (input.deliveryFee || 0);
+    const signature = crypto.createHash('sha256').update(`${reference}${total}${product.currency}${this.integritySecret}`).digest('hex');
     const transaction = await this.#insert('transactions', {
       product_id: product.id,
       customer_id: customer.id,
@@ -50,7 +52,7 @@ export class PaymentService {
         currency: product.currency,
         customer_email: input.customer.email,
         reference,
-        signature: input.signature,
+        signature,
         payment_method: input.paymentMethod,
       });
       await this.#update('transactions', transaction.id, { wompi_transaction_id: wompi.data.id, status: String(wompi.data.status || 'PENDING').toLowerCase() });
@@ -70,7 +72,7 @@ export class PaymentService {
     const status = String(result.data.status || '').toLowerCase();
     await this.#update('transactions', transactionId, { status });
     if (status === 'approved') {
-      const { error: stockError } = await this.supabase.rpc('decrement_product_stock', { product_id: local.product_id, quantity_to_decrement: local.quantity });
+      const { error: stockError } = await this.supabase.rpc('decrement_product_stock', { p_product_id: local.product_id, p_quantity_to_decrement: local.quantity });
       if (stockError && !stockError.message.includes('already processed')) throw stockError;
     }
     return { transactionId, status, wompi: result.data };

@@ -104,10 +104,35 @@ export default function App() {
 
 function Checkout({ cart, text, onClose }) {
   const [cardNumber, setCardNumber] = useState('');
+  const [cardholder, setCardholder] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [phone, setPhone] = useState('');
   const [acceptance, setAcceptance] = useState(null);
   const [accepted, setAccepted] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('idle');
+  const [paymentMessage, setPaymentMessage] = useState('');
   const brand = getCardBrand(cardNumber);
   const total = cart.reduce((sum, item) => sum + item.product.priceInCents * item.quantity, 0);
   useEffect(() => { fetch('/api/payments/acceptance').then((response) => response.ok ? response.json() : null).then((payload) => setAcceptance(payload?.data || null)).catch(() => setAcceptance(null)); }, []);
-  return <div className="checkout-backdrop"><section className="checkout-panel" aria-label={text.checkout}><button className="close-button" type="button" onClick={onClose}>×</button><p className="eyebrow">{text.checkout}</p><h2>{text.paymentMethod}</h2>{cart.length === 0 ? <p>{text.emptyCart}</p> : <><div className="checkout-summary">{cart.map((item) => <p key={item.product.id}>{item.product.name} × {item.quantity}</p>)}<strong>{moneyFormatter.format(total / 100)}</strong></div><input placeholder="correo@ejemplo.com" type="email" /><input placeholder="Dirección de entrega" /><div className="checkout-row"><input placeholder="Ciudad" /><input placeholder="Teléfono" /></div><div className="payment-brands"><img src="/payment-logos/visa.jpeg" alt={text.visa} /><img src="/payment-logos/mastercard.png" alt={text.mastercard} /></div><input value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder={text.cardNumber} inputMode="numeric" /><p className={isValidCardNumber(cardNumber) ? 'valid-card' : 'card-error'}>{brand !== 'unknown' && isValidCardNumber(cardNumber) ? brand : cardNumber ? text.invalidCard : ''}</p><input placeholder={text.cardholder} /><div className="checkout-row"><input placeholder={text.expiry} /><input placeholder={text.cvc} /></div>{acceptance && <div className="terms-links"><a href={acceptance.presigned_acceptance?.permalink} target="_blank" rel="noreferrer">Términos y condiciones</a><a href={acceptance.presigned_personal_data_auth?.permalink} target="_blank" rel="noreferrer">Autorización de datos personales</a></div>}<label className="terms"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />{text.terms}</label><button className="primary-action" type="button" disabled={!isValidCardNumber(cardNumber) || !accepted}>{text.pay}</button></>}</section></div>;
+  const pay = async () => {
+    setPaymentStatus('loading'); setPaymentMessage('');
+    try {
+      const [month, year] = expiry.replace(/\s/g, '').split('/');
+      const configResponse = await fetch('/api/payments/tokenization-config');
+      const config = (await configResponse.json()).data;
+      const tokenResponse = await fetch(`${config.apiUrl}/tokens/cards`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.publicKey}` }, body: JSON.stringify({ number: cardNumber.replace(/\D/g, ''), cvc, exp_month: month, exp_year: `20${year}`, card_holder: cardholder }) });
+      const tokenPayload = await tokenResponse.json();
+      if (!tokenResponse.ok || !tokenPayload.data?.id) throw new Error(tokenPayload.error?.reason || 'No fue posible tokenizar la tarjeta');
+      const item = cart[0];
+      const paymentResponse = await fetch('/api/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: item.product.id, quantity: item.quantity, customer: { fullName: cardholder, email, phone }, delivery: { address, city }, acceptanceToken: acceptance?.presigned_acceptance?.acceptance_token, acceptPersonalAuth: acceptance?.presigned_personal_data_auth?.acceptance_token, paymentMethod: { type: 'CARD', token: tokenPayload.data.id, installments: 1 } }) });
+      const paymentPayload = await paymentResponse.json();
+      if (!paymentResponse.ok) throw new Error(paymentPayload.message || 'No fue posible crear el pago');
+      setPaymentStatus('success'); setPaymentMessage(`Transacción creada: ${paymentPayload.wompi?.id || paymentPayload.transactionId}`);
+    } catch (error) { setPaymentStatus('error'); setPaymentMessage(error.message); }
+  };
+  return <div className="checkout-backdrop"><section className="checkout-panel" aria-label={text.checkout}><button className="close-button" type="button" onClick={onClose}>×</button><p className="eyebrow">{text.checkout}</p><h2>{text.paymentMethod}</h2>{cart.length === 0 ? <p>{text.emptyCart}</p> : <><div className="checkout-summary">{cart.map((item) => <p key={item.product.id}>{item.product.name} × {item.quantity}</p>)}<strong>{moneyFormatter.format(total / 100)}</strong></div><input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="correo@ejemplo.com" type="email" /><input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Dirección de entrega" /><div className="checkout-row"><input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Ciudad" /><input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Teléfono" /></div><div className="payment-brands"><img src="/payment-logos/visa.jpeg" alt={text.visa} /><img src="/payment-logos/mastercard.png" alt={text.mastercard} /></div><input value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder={text.cardNumber} inputMode="numeric" /><p className={isValidCardNumber(cardNumber) ? 'valid-card' : 'card-error'}>{brand !== 'unknown' && isValidCardNumber(cardNumber) ? brand : cardNumber ? text.invalidCard : ''}</p><input value={cardholder} onChange={(event) => setCardholder(event.target.value)} placeholder={text.cardholder} /><div className="checkout-row"><input value={expiry} onChange={(event) => setExpiry(event.target.value)} placeholder={text.expiry} /><input value={cvc} onChange={(event) => setCvc(event.target.value)} placeholder={text.cvc} /></div>{acceptance && <div className="terms-links"><a href={acceptance.presigned_acceptance?.permalink} target="_blank" rel="noreferrer">Términos y condiciones</a><a href={acceptance.presigned_personal_data_auth?.permalink} target="_blank" rel="noreferrer">Autorización de datos personales</a></div>}<label className="terms"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />{text.terms}</label>{paymentMessage && <p className={paymentStatus === 'error' ? 'card-error' : 'valid-card'}>{paymentMessage}</p>}<button className="primary-action" type="button" onClick={pay} disabled={!isValidCardNumber(cardNumber) || !accepted || !email || !address || !city || !cardholder || !/^\d{2}\/\d{2}$/.test(expiry) || !/^\d{3,4}$/.test(cvc) || paymentStatus === 'loading'}>{paymentStatus === 'loading' ? 'Procesando...' : text.pay}</button></>}</section></div>;
 }

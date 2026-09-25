@@ -29,6 +29,11 @@ export function createApp({ productController = buildProductController() } = {})
         return;
       }
 
+      if (request.method === 'GET' && request.url === '/api/payments/tokenization-config') {
+        sendJson(response, 200, { data: { apiUrl: wompiEnv.apiUrl, publicKey: wompiEnv.publicKey } });
+        return;
+      }
+
       const paymentMatch = request.url.match(/^\/api\/payments\/([^/]+)$/);
       if (request.method === 'GET' && paymentMatch) {
         const result = await buildPaymentService().syncPayment(paymentMatch[1]);
@@ -66,6 +71,7 @@ function buildPaymentService() {
   return new PaymentService({
     supabase,
     wompiClient: new WompiClient(wompiEnv),
+    integritySecret: wompiEnv.integritySecret,
   });
 }
 
