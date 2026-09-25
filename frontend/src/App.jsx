@@ -35,7 +35,25 @@ function getProductGallery(product) {
 
 function getDisplayProduct(product) {
   const isChairPromo = product.slug === 'gaming-chair-px1' || product.id === 'gaming-chair-px1';
-  return isChairPromo ? { ...product, priceInCents: Math.round(product.priceInCents / 2), originalPriceInCents: product.priceInCents } : product;
+  if (!isChairPromo) return product;
+  // Products coming from the API already contain the sale price. Only apply
+  // the local preview discount when the API has not supplied one yet.
+  if (product.originalPriceInCents && product.priceInCents < product.originalPriceInCents) return product;
+  return { ...product, priceInCents: Math.round(product.priceInCents / 2), originalPriceInCents: product.priceInCents };
+}
+
+function normalizeCart(items, products) {
+  const merged = new Map();
+  items.forEach((item) => {
+    const current = products.find((product) => product.id === item.product.id || product.slug === item.product.slug || product.name === item.product.name);
+    if (!current) return;
+    const product = getDisplayProduct(current);
+    const previous = merged.get(product.id);
+    merged.set(product.id, previous
+      ? { ...previous, quantity: previous.quantity + item.quantity, product }
+      : { ...item, product });
+  });
+  return [...merged.values()];
 }
 
 const copy = {
@@ -131,10 +149,7 @@ export default function App() {
       .then((response) => { if (!response.ok) throw new Error('Could not load products'); return response.json(); })
       .then((payload) => {
         setProducts(payload.data);
-        dispatch(replaceItems(cart.map((item) => {
-          const current = payload.data.find((product) => product.id === item.product.id || product.slug === item.product.slug);
-          return current ? { ...item, product: current } : item;
-        })));
+        dispatch(replaceItems(normalizeCart(cart, payload.data)));
         setStatus('ready');
       })
       .catch(() => { setProducts(demoProducts); setStatus('demo'); });

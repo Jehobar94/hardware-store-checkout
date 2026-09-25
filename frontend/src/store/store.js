@@ -5,7 +5,16 @@ const readStorage = (key, fallback) => {
 };
 
 const cartSlice = createSlice({ name: 'cart', initialState: readStorage('store-cart', []), reducers: {
-  addItem: (state, action) => [action.payload, ...state.filter((item) => item.product.id !== action.payload.product.id)],
+  addItem: (state, action) => {
+    const existing = state.find((item) => item.product.id === action.payload.product.id);
+    if (existing) {
+      existing.quantity += action.payload.quantity;
+      existing.product = action.payload.product;
+      return state;
+    }
+    state.unshift(action.payload);
+    return state;
+  },
   replaceItems: (_state, action) => action.payload,
   removeItems: (state, action) => state.filter((item) => !action.payload.includes(item.product.id)),
   clearCart: () => [],
