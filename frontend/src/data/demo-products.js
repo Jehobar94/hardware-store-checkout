@@ -4,6 +4,7 @@ export const demoProducts = [
     name: 'Teclado mecánico PX1',
     description: 'Teclado mecánico compacto con iluminación RGB, conexión USB y diseño cómodo para trabajar o jugar.',
     priceInCents: 18990000,
+    originalPriceInCents: 22990000,
     currency: 'COP',
     stock: 12,
     imageUrls: [
@@ -17,6 +18,7 @@ export const demoProducts = [
     name: 'Mouse inalámbrico PX1',
     description: 'Mouse inalámbrico ergonómico con seguimiento preciso y batería de larga duración.',
     priceInCents: 8990000,
+    originalPriceInCents: 10990000,
     currency: 'COP',
     stock: 10,
     imageUrls: [

@@ -5,14 +5,18 @@ where slug in ('coffee-subscription', 'ceramic-mug');
 alter table public.products
 add column if not exists image_urls text[] not null default '{}';
 
+alter table public.products
+add column if not exists original_price_in_cents bigint;
+
 insert into public.products (
-  slug, name, description, price_in_cents, currency, stock, image_url, image_urls
+  slug, name, description, price_in_cents, original_price_in_cents, currency, stock, image_url, image_urls
 )
 values (
   'mechanical-keyboard-px1',
   'Teclado mecánico PX1',
   'Teclado mecánico compacto con iluminación RGB, conexión USB y diseño cómodo para trabajar o jugar.',
   18990000,
+  22990000,
   'COP',
   12,
   'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Teclados/TecladoPX1.jpg',
@@ -25,6 +29,7 @@ values (
 on conflict (slug) do update set
   description = excluded.description,
   price_in_cents = excluded.price_in_cents,
+  original_price_in_cents = excluded.original_price_in_cents,
   stock = excluded.stock,
   image_url = excluded.image_url,
   image_urls = excluded.image_urls,
@@ -32,13 +37,14 @@ on conflict (slug) do update set
 
 -- Segundo producto: mouse con tres vistas cargadas en Storage.
 insert into public.products (
-  slug, name, description, price_in_cents, currency, stock, image_url, image_urls
+  slug, name, description, price_in_cents, original_price_in_cents, currency, stock, image_url, image_urls
 )
 values (
   'wireless-mouse-px1',
   'Mouse inalámbrico PX1',
   'Mouse inalámbrico ergonómico con seguimiento preciso y batería de larga duración.',
   8990000,
+  10990000,
   'COP',
   10,
   'https://oveytbyzsfuhievhyrtn.supabase.co/storage/v1/object/public/Store/Mouse/Mousepx1.jpg',
@@ -51,6 +57,7 @@ values (
 on conflict (slug) do update set
   description = excluded.description,
   price_in_cents = excluded.price_in_cents,
+  original_price_in_cents = excluded.original_price_in_cents,
   stock = excluded.stock,
   image_url = excluded.image_url,
   image_urls = excluded.image_urls,

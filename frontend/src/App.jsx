@@ -11,7 +11,7 @@ const copy = {
     eyebrow: 'Technology, made simple',
     title: <>Prueba técnica<br /><em>W.</em></>,
     intro: 'Hardware elegido para trabajar, crear y disfrutar todos los días.',
-    collection: 'The collection',
+    collection: 'The collection', shipping: 'Free shipping on orders over $150,000 COP',
     localPreview: 'Showing local preview',
     loading: 'Loading products...',
     available: 'available',
@@ -25,7 +25,7 @@ const copy = {
     eyebrow: 'Tecnología, hecha simple',
     title: <>Prueba técnica<br /><em>W.</em></>,
     intro: 'Hardware elegido para trabajar, crear y disfrutar todos los días.',
-    collection: 'La colección',
+    collection: 'La colección', shipping: 'Envío gratis en compras superiores a $150.000 COP',
     localPreview: 'Mostrando vista local',
     loading: 'Cargando productos...',
     available: 'disponibles',
@@ -55,7 +55,7 @@ function ProductCard({ product, text, language, onSelect }) {
       <div className="product-card__content">
         <div className="product-card__heading"><h2>{name}</h2><span className="stock-badge">{product.stock} {text.available}</span></div>
         <p>{description}</p>
-        <div className="product-card__footer"><strong>{moneyFormatter.format(product.priceInCents / 100)}</strong><button type="button" onClick={(event) => { event.stopPropagation(); onSelect(product); }}>{text.viewProduct}</button></div>
+        <div className="product-card__footer"><div className="price-block">{product.originalPriceInCents && <del>{moneyFormatter.format(product.originalPriceInCents / 100)}</del>}<strong>{moneyFormatter.format(product.priceInCents / 100)}</strong></div><button type="button" onClick={(event) => { event.stopPropagation(); onSelect(product); }}>{text.viewProduct}</button></div>
       </div>
     </article>
   );
@@ -92,6 +92,7 @@ export default function App() {
     <div className="app-shell">
       <header className="site-header"><a className="brand" href="/"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>Store</span></a><div className="header-actions"><button className="language-button" type="button" onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}>{text.language}</button><button className="cart-button" type="button" aria-label={text.cart} onClick={() => setCheckoutOpen(true)}>{text.cart} <span>{cartCount}</span></button></div></header>
       <main>
+        <div className="shipping-banner"><span aria-hidden="true">✦</span>{text.shipping}</div>
         <section className="hero"><p className="eyebrow">{text.eyebrow}</p><h1>{text.title}</h1><p className="hero__copy">{text.intro}</p></section>
         <section className="catalog" aria-labelledby="catalog-title"><div className="section-heading"><h2 id="catalog-title">{text.collection}</h2>{status === 'demo' && <span className="status-note">{text.localPreview}</span>}</div>{status === 'loading' && <p className="empty-state">{text.loading}</p>}{products.length > 0 && <div className="product-grid">{products.map((product) => <div key={product.id} onClick={() => { setSelectedQuantity(1); setSelectedProduct(product); }}><ProductCard product={product} text={text} language={language} onSelect={(item) => { setSelectedQuantity(1); setSelectedProduct(item); }} /></div>)}</div>}</section>
       </main>
